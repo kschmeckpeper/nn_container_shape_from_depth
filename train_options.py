@@ -20,7 +20,7 @@ class TrainOptions(BaseTrainOptions):
 
 
         io = self.parser.add_argument_group('io')
-        io.add_argument('--dataset_dir', default='/NAS/home/nn_container_shape/data/', help='Path to the desired dataset')
+        io.add_argument('--dataset_dir', default='/NAS/home/nn_container_shape_from_depth/', help='Path to the desired dataset')
         io.add_argument('--log_dir', default='../logs', help='Directory to store logs')
         io.add_argument('--checkpoint', default=None, help='Path to checkpoint')
         io.add_argument('--from_json', default=None, help='Load options from json file instead of the command line')

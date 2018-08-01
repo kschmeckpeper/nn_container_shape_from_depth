@@ -90,9 +90,9 @@ class PouringDataset(Dataset):
 
 
     def __getitem__(self, idx):
-        base_file_path = os.path.join(self.root_dir, self.files[idx])
+        base_file_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
 
-        cfg_file_path = '_'.join(base_file_path.split('_')[:-1])
+        cfg_file_path = os.path.join(self.root_dir, 'config_files', '_'.join(self.files[idx].split('_')[:-1]))
         
         profile = self._get_container_profile(cfg_file_path + ".cfg")
 
