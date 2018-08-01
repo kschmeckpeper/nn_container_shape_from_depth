@@ -118,7 +118,7 @@ class ShapeTrainer(BaseTrainer):
 
 
         
-    def _test_step(self, input_batch, is_train):
+    def _test_step(self, input_batch):
         self.model.eval()
         return self._train_or_test_step(input_batch, False)
 
