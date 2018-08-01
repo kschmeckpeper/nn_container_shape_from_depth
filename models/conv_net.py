@@ -45,9 +45,8 @@ class ConvNet(nn.Module):
     def forward(self, x):
         return self.network(x) + 1.0
 
-
+    @staticmethod
     def _get_nonlinearity(nonlinearity):
-        @staticmethod
         ''' Looks up the correct nonlinearity to use
         '''
         if nonlinearity == 'LeakyReLU':
