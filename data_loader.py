@@ -97,7 +97,7 @@ class PouringDataset(Dataset):
         
         profile = self._get_container_profile(cfg_file_path + ".cfg")
 
-        depth_image = cv2.imread(base_file_path+'.png')
+        depth_image = cv2.imread(base_file_path, cv2.IMREAD_GRAYSCALE)
         depth_image = cv2.resize(depth_image, (self.image_size, self.image_size))
         
 
