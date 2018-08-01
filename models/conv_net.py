@@ -15,35 +15,44 @@ class ConvNet(nn.Module):
 
                  nonlinearity='ReLU'):
         super(ConvNet, self).__init__()
-
+        print "Stride", stride
         layers = OrderedDict()
         
         layers['conv_0'] = nn.Conv2d(1, num_hidden_channels, kernel, stride=stride)
-
-        num_conv_layers = -1
+        print "Created layer"
+        num_conv_layers = 0
         while input_image_size > 1:
             input_image_size = (input_image_size - kernel - 1) / stride + 1
             num_conv_layers += 1
-
-        for i in range(num_conv_layers):
+        print "Num conv layers", num_conv_layers
+        for i in range(1, num_conv_layers):
             layers[nonlinearity + '_conv_' + str(i)] = ConvNet._get_nonlinearity(nonlinearity)
             layers['dropout_conv_' + str(i)] = nn.Dropout(p=dropout_prob)
             layers['conv_' + str(i)] = nn.Conv2d(num_hidden_channels, num_hidden_channels, kernel, stride=stride)
 
 
         for i in range(num_linear_layers):
-            layers[nonlinearity + str(i)] = ConvNet._get_nonlinearity(nonlinearity)
+            layers[nonlinearity + '_linear_' + str(i)] = ConvNet._get_nonlinearity(nonlinearity)
             
-            layers['dropout' + str(i)] = nn.Dropout(p=dropout_prob)
-            layers['linear' + str(i)] = nn.Linear(num_hidden_channels, num_hidden_channels)
+            layers['dropout_linear_' + str(i)] = nn.Dropout(p=dropout_prob)
+            layers['linear_' + str(i)] = nn.Linear(num_hidden_channels, num_hidden_channels)
 
         layers[nonlinearity + '_final'] = ConvNet._get_nonlinearity(nonlinearity)
         layers['output'] = nn.Linear(num_hidden_channels, num_output_channels)
         self.network = nn.Sequential(layers)
+        self.layers = layers
 
 
     def forward(self, x):
-        return self.network(x) + 1.0
+        print "input", x.shape
+        for layer in self.layers:
+            print "Layer:", layer
+            if layer == 'linear_0':
+                x = x.view(-1, 1024)
+            x = self.layers[layer](x)
+            print "x", x.shape
+        return x + 1.0
+        #return self.network(x) + 1.0
 
     @staticmethod
     def _get_nonlinearity(nonlinearity):

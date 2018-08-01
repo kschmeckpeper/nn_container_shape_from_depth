@@ -125,6 +125,7 @@ class ShapeTrainer(BaseTrainer):
 
     def _train_or_test_step(self, input_batch, is_train):
         depth_images = input_batch['depth_image'].to(torch.float)
+        depth_images = depth_images.view(-1, 1, depth_images.shape[1], depth_images.shape[2])
         gt_profiles = input_batch['profile'].to(torch.float)
 
         # Turn off gradients when testing
