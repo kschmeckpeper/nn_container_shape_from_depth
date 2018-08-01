@@ -3,6 +3,7 @@ from torch.utils.data import Dataset
 import os
 from enum import Enum
 import torch
+import cv2
 
 class Shape(Enum):
     STRAIGHT=0
@@ -92,12 +93,12 @@ class PouringDataset(Dataset):
     def __getitem__(self, idx):
         base_file_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
 
-        cfg_file_path = os.path.join(self.root_dir, 'config_files', '_'.join(self.files[idx].split('_')[:-1]))
+        cfg_file_path = os.path.join(self.root_dir, 'cfg_files', '_'.join(self.files[idx].split('_')[:-1]))
         
         profile = self._get_container_profile(cfg_file_path + ".cfg")
 
         depth_image = cv2.imread(base_file_path+'.png')
-        depth_image = cv2.resize(image, (self.image_size, self.image_size))
+        depth_image = cv2.resize(depth_image, (self.image_size, self.image_size))
         
 
         sample = {'profile': profile, 'depth_image': depth_image}
