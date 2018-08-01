@@ -14,7 +14,7 @@ class ConvNet(nn.Module):
                  dropout_prob=0.0,
 
                  nonlinearity='ReLU'):
-        super(FullyConnected, self).__init__()
+        super(ConvNet, self).__init__()
 
         layers = OrderedDict()
         
@@ -31,7 +31,7 @@ class ConvNet(nn.Module):
             layers['conv_' + str(i)] = nn.Conv2d(num_hidden_channels, num_hidden_channels, kernel, stride=stride)
 
 
-        for i in range(num_hidden_layers):
+        for i in range(num_linear_layers):
             layers[nonlinearity + str(i)] = ConvNet._get_nonlinearity(nonlinearity)
             
             layers['dropout' + str(i)] = nn.Dropout(p=dropout_prob)
@@ -45,9 +45,8 @@ class ConvNet(nn.Module):
     def forward(self, x):
         return self.network(x) + 1.0
 
-
+    @staticmethod
     def _get_nonlinearity(nonlinearity):
-        @staticmethod
         ''' Looks up the correct nonlinearity to use
         '''
         if nonlinearity == 'LeakyReLU':
