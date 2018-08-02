@@ -99,7 +99,7 @@ class PouringDataset(Dataset):
 
         depth_image = cv2.imread(base_file_path, cv2.IMREAD_GRAYSCALE)
         depth_image = cv2.resize(depth_image, (self.image_size, self.image_size))
-        
+        depth_image = 1.0 - depth_image.astype(float) / 255.0
 
         sample = {'profile': profile, 'depth_image': depth_image}
 
