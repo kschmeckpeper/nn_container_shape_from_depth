@@ -19,7 +19,7 @@ class ConvNet(nn.Module):
         
         conv_layers['conv_0'] = nn.Conv2d(1, num_hidden_channels, conv_kernel, padding=(conv_kernel-1)/2)
         conv_layers['pooling_0'] = nn.MaxPool2d(max_pooling_kernel)
-        num_conv_layers = int(math.ceil(math.log(128, 2)))
+        num_conv_layers = int(math.ceil(math.log(input_image_size, 2)))
 
         for i in range(1, num_conv_layers):
             conv_layers[nonlinearity + '_conv_' + str(i)] = ConvNet._get_nonlinearity(nonlinearity)
