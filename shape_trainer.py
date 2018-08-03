@@ -66,10 +66,11 @@ class ShapeTrainer(BaseTrainer):
 
         profile_images = []
         for i in range(len(pred_profiles)):
+            profile_images.append(input_batch['depth_image'][i])
             profile_images.append(self._make_profile_image(input_batch['profile'][i], pred_profiles[i]))
 
 
-        profile_image_grid = make_grid(profile_images, pad_value=1, nrow=3)
+        profile_image_grid = make_grid(profile_images, pad_value=1, nrow=4)
         self.summary_writer.add_image(prefix + 'profiles', profile_image_grid, self.step_count)
         if is_train:
             self.summary_writer.add_scalar('lr', self._get_lr(), self.step_count)
