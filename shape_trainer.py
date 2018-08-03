@@ -70,23 +70,16 @@ class ShapeTrainer(BaseTrainer):
             profile_image = self._make_profile_image(input_batch['profile'][i], pred_profiles[i])
             profile_image = profile_image.to(self.device, dtype=torch.float64)
 
-            original_image = torch.zeros(3, 256, 256, dtype=torch.float64, device=self.device)
-            original_image[0, :, :] = input_batch['depth_image'][i]
-            original_image[1, :, :] = input_batch['depth_image'][i]
-            original_image[2, :, :] = input_batch['depth_image'][i]
-            resized_image = torch.from_numpy(cv2.resize(input_batch['depth_image'][i].cpu().numpy(), (profile_image.shape[1], profile_image.shape[2])))
+            resized_image = cv2.resize(input_batch['depth_image'][i].cpu().numpy(), (profile_image.shape[1], profile_image.shape[2]))
+            resized_image = torch.from_numpy(resized_image)
             color_image = torch.zeros_like(profile_image)
             color_image[0, :, :] = resized_image
             color_image[1, :, :] = resized_image
             color_image[2, :, :] = resized_image
-            #resized_image = resized_image.to(self.device, dtype=torch.float64)
-            #resized_image = resized_image.view(1, profile_image.shape[1], profile_image.shape[2])
 
             profile_images.append(color_image)
             profile_images.append(profile_image)
-        
-        for i in range(len(profile_images)):
-            print profile_images[i].dtype, profile_images[i].device, profile_images[i].shape
+
 
         profile_image_grid = make_grid(profile_images, pad_value=1, nrow=4)
         self.summary_writer.add_image(prefix + 'profiles', profile_image_grid, self.step_count)
