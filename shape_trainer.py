@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import cv2
 from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
 
@@ -66,8 +67,18 @@ class ShapeTrainer(BaseTrainer):
 
         profile_images = []
         for i in range(len(pred_profiles)):
-            profile_images.append(input_batch['depth_image'][i])
-            profile_images.append(self._make_profile_image(input_batch['profile'][i], pred_profiles[i]))
+            profile_image = self._make_profile_image(input_batch['profile'][i], pred_profiles[i])
+            profile_image = profile_image.to(self.device, dtype=torch.float64)
+
+            resized_image = cv2.resize(input_batch['depth_image'][i].cpu().numpy(), (profile_image.shape[1], profile_image.shape[2]))
+            resized_image = torch.from_numpy(resized_image)
+            color_image = torch.zeros_like(profile_image)
+            color_image[0, :, :] = resized_image
+            color_image[1, :, :] = resized_image
+            color_image[2, :, :] = resized_image
+
+            profile_images.append(color_image)
+            profile_images.append(profile_image)
 
 
         profile_image_grid = make_grid(profile_images, pad_value=1, nrow=4)

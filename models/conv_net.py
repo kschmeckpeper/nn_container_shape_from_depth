@@ -111,18 +111,18 @@ class ConvNet(nn.Module):
 
 
     def forward(self, x):
-        print "input", x.shape
+        #print "input", x.shape
         #x = self.conv_network(x)
         for layer in self.conv_layers:
-            print "Layer", layer
+            #print "Layer", layer
             x = self.conv_layers[layer](x)
-            print "x", x.shape
+            #print "x", x.shape
             #print x
             #from IPython.core.debugger import Pdb
             #Pdb().set_trace()
 
         x = x.view(-1, x.shape[1] * x.shape[2] * x.shape[3])
-        print x.shape
+        #print x.shape
         x = self.fully_connected_network(x)
 
         return x + 1.0
