@@ -63,22 +63,27 @@ class ShapeTrainer(BaseTrainer):
 
     def _train_summaries(self, input_batch, pred_profiles, loss, is_train=True):
         prefix = 'train/' if is_train else 'test/'
+        if is_train:
+            input_batch = [input_batch]
+            pred_profiles = [pred_profiles]
+
         self.summary_writer.add_scalar(prefix + 'loss', loss, self.step_count)
 
         profile_images = []
-        for i in range(len(pred_profiles)):
-            profile_image = self._make_profile_image(input_batch['profile'][i], pred_profiles[i])
-            profile_image = profile_image.to(self.device, dtype=torch.float64)
+        for j in range(len(pred_profiles)):
+            for i in range(len(pred_profiles[j])):
+                profile_image = self._make_profile_image(input_batch[j]['profile'][i], pred_profiles[j][i])
+                profile_image = profile_image.to(self.device, dtype=torch.float64)
 
-            resized_image = cv2.resize(input_batch['depth_image'][i].cpu().numpy(), (profile_image.shape[1], profile_image.shape[2]))
-            resized_image = torch.from_numpy(resized_image)
-            color_image = torch.zeros_like(profile_image)
-            color_image[0, :, :] = resized_image
-            color_image[1, :, :] = resized_image
-            color_image[2, :, :] = resized_image
+                resized_image = cv2.resize(input_batch[j]['depth_image'][i].cpu().numpy(), (profile_image.shape[1], profile_image.shape[2]))
+                resized_image = torch.from_numpy(resized_image)
+                color_image = torch.zeros_like(profile_image)
+                color_image[0, :, :] = resized_image
+                color_image[1, :, :] = resized_image
+                color_image[2, :, :] = resized_image
 
-            profile_images.append(color_image)
-            profile_images.append(profile_image)
+                profile_images.append(color_image)
+                profile_images.append(profile_image)
 
 
         profile_image_grid = make_grid(profile_images, pad_value=1, nrow=4)
@@ -113,8 +118,8 @@ class ShapeTrainer(BaseTrainer):
                                       num_workers=self.options.num_workers,
                                       pin_memory=self.options.pin_memory,
                                       shuffle=self.options.shuffle_test)
-        profiles = None
-        last_batch = None
+        all_profiles = []
+        all_batches = []
         test_loss = torch.tensor(0.0, device=self.device)
 
         for tstep, batch in enumerate(tqdm(test_data_loader, desc='Testing')):
@@ -123,10 +128,10 @@ class ShapeTrainer(BaseTrainer):
             pred_profiles, loss = self._test_step(batch)
 
             test_loss += loss.data
-            profiles = pred_profiles
-            last_batch = batch
+            all_profiles.append(pred_profiles)
+            all_batches.append(batch)
 
-        self._train_summaries(last_batch, profiles, test_loss, is_train=False)
+        self._train_summaries(all_batches, all_profiles, test_loss, is_train=False)
 
 
         
