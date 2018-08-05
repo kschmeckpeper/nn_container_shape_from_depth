@@ -106,11 +106,11 @@ class ShapeTrainer(BaseTrainer):
             gt_index = int(1.0 * width * gt_profile[i] / max_gt)
             output_index = int(1.0 * width * output_profile[i] / max_gt)
 
-            image[0, i, gt_index] = 1
+            image[0, len(gt_profile) - i - 1, gt_index] = 1
 
             output_index = max(0, output_index)
             output_index = min(width-1, output_index)
-            image[1, i, output_index] = 1
+            image[1, len(gt_profile) - i - 1, output_index] = 1
         return image
 
     def test(self):
