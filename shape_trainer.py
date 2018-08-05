@@ -25,12 +25,16 @@ class ShapeTrainer(BaseTrainer):
                              nonlinearity=self.options.nonlinearity).to(self.device)
 
 
-        self.train_ds = PouringDataset(self.options.dataset_dir, 
+        self.train_ds = PouringDataset(self.options.dataset_dir,
+                                       load_volume=self.options.task=='volume_profile',
+                                       volume_dir=self.options.volume_dir,
                                        num_divisions=self.options.num_horz_divs,
                                        image_size=self.options.image_size,
                                        center=self.options.center,
                                        is_train=True)
         self.test_ds = PouringDataset(self.options.dataset_dir,
+                                      load_volume=self.options.task=='volume_profile',
+                                      volume_dir=self.options.volume_dir,
                                       num_divisions = self.options.num_horz_divs,
                                       image_size=self.options.image_size,
                                       center=self.options.center,
@@ -72,6 +76,13 @@ class ShapeTrainer(BaseTrainer):
         profile_images = []
         for j in range(len(pred_profiles)):
             for i in range(len(pred_profiles[j])):
+                if self.options.task == 'cross_section':
+                    gt_profile = input_batch[j]['cross_section_profile'][i]
+                elif self.options.task == 'volume_profile':
+                    gt_profile = input_batch[j]['volume_profile'][i]
+                else:
+                    raise NotImplementedError('The requested task does not exist') 
+
                 profile_image = self._make_profile_image(input_batch[j]['profile'][i], pred_profiles[j][i])
                 profile_image = profile_image.to(self.device, dtype=torch.float64)
 
@@ -143,7 +154,13 @@ class ShapeTrainer(BaseTrainer):
     def _train_or_test_step(self, input_batch, is_train):
         depth_images = input_batch['depth_image'].to(torch.float)
         depth_images = depth_images.view(-1, 1, depth_images.shape[1], depth_images.shape[2])
-        gt_profiles = input_batch['profile'].to(torch.float)
+
+        if self.options.task == 'cross_section':
+            gt_profiles = input_batch['cross_section_profile'].to(torch.float)
+        elif self.options.task == 'volume_profile':
+            gt_profiles = input_batch['volume_profile'].to(torch.float)
+        else:
+            raise NotImplementedError('The requested task does not exist') 
 
         # Turn off gradients when testing
         if is_train:

@@ -9,6 +9,11 @@ class TrainOptions(BaseTrainOptions):
         req = self.parser.add_argument_group('Required')
         req.add_argument('--name', required=True, help='Name of the experiment')
 
+        task  = req.add_mutually_exclusive_group()
+        task.add_argument('--cross_section', dest='task', action='store_const', const='cross_section')
+        task.add_argument('--volume_profile', dest='task', action='store_const', const='volume_profile')
+        req.set_defaults(task='cross_section')
+
         gen = self.parser.add_argument_group('General')
         gen.add_argument('--time_to_run', type=int, default=3600, help='Total time to run in seconds')
         gen.add_argument('--resume', dest='resume', default=False, action='store_true', help='Resume from checkpoint (Use latest checkpoint by default')
@@ -21,6 +26,7 @@ class TrainOptions(BaseTrainOptions):
 
         io = self.parser.add_argument_group('io')
         io.add_argument('--dataset_dir', default='/NAS/home/nn_container_shape_from_depth/data', help='Path to the desired dataset')
+        io.add_argument('--volume_dir', default='/NAS/home/nn_container_shape_from_depth/volume_profiles', help='Path to the volume profiles')
         io.add_argument('--log_dir', default='../logs', help='Directory to store logs')
         io.add_argument('--checkpoint', default=None, help='Path to checkpoint')
         io.add_argument('--from_json', default=None, help='Load options from json file instead of the command line')

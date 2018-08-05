@@ -13,7 +13,7 @@ class Shape(Enum):
 
 
 class PouringDataset(Dataset):
-    def __init__(self, root_dir, is_train, num_divisions=128, image_size=128, center=False):
+    def __init__(self, root_dir, is_train, load_volume=False, volume_dir=None, num_divisions=128, image_size=128, center=False):
         self.num_divisions = num_divisions
         self.root_dir = root_dir
         self.center = center
@@ -89,19 +89,44 @@ class PouringDataset(Dataset):
                 print "Invalid cfg file format"
             return profile
 
+    def _get_volume_profile(self, path):
+        data = np.loadtxt(path)
+        max_volume = data[0, 1]
+        # Flip volume to make it the amount in the receiving container
+        # instead of the amount in the pouring container
+        volumes = (max_volume - data[:, 0]) / 100000.0
+
+        step_size = len(volumes) / self.num_divisions
+        volume_profile = np.zeros(self.num_divisions)
+
+        for i in range(self.num_divisions):
+            volume_profile[i] = np.mean(volumes[i * step_size:(i+1)*step_size])
+
+        return volume_profile
 
     def __getitem__(self, idx):
         base_file_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
 
-        cfg_file_path = os.path.join(self.root_dir, 'cfg_files', '_'.join(self.files[idx].split('_')[:-1]))
+        file_name = '_'.join(self.files[idx].split('_')[:-1])
+
+        cfg_file_path = os.path.join(self.root_dir, 'cfg_files', file_name + ".cfg")
         
-        profile = self._get_container_profile(cfg_file_path + ".cfg")
+        profile = self._get_container_profile(cfg_file_path)
+
+
 
         depth_image = cv2.imread(base_file_path, cv2.IMREAD_GRAYSCALE)
         depth_image = cv2.resize(depth_image, (self.image_size, self.image_size))
         depth_image = 1.0 - depth_image.astype(float) / 255.0
 
-        sample = {'profile': profile, 'depth_image': depth_image}
+        sample = {'cross_section_profile': profile, 'depth_image': depth_image}
 
+        if self.load_volume:
+            volume_profile_path = os.path.join(self.volume_dir, file_name + ".text")
+            volume_profile = self._get_volume_profile(volume_profile_path)
+            sample['volume_profile'] = volume_profile
+
+        print sample
+        fghjkl
         return sample
 
