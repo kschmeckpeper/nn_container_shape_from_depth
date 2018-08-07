@@ -83,7 +83,7 @@ class ShapeTrainer(BaseTrainer):
                 else:
                     raise NotImplementedError('The requested task does not exist') 
 
-                profile_image = self._make_profile_image(input_batch[j]['profile'][i], pred_profiles[j][i])
+                profile_image = self._make_profile_image(gt_profile, pred_profiles[j][i])
                 profile_image = profile_image.to(self.device, dtype=torch.float64)
 
                 resized_image = cv2.resize(input_batch[j]['depth_image'][i].cpu().numpy(), (profile_image.shape[1], profile_image.shape[2]))

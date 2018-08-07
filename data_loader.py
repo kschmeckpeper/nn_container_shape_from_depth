@@ -18,7 +18,8 @@ class PouringDataset(Dataset):
         self.root_dir = root_dir
         self.center = center
         self.image_size = image_size
-
+        self.load_volume = load_volume
+        self.volume_dir = volume_dir
         if is_train:
             file_path = os.path.join(root_dir, "train.txt")
         else:
@@ -126,7 +127,6 @@ class PouringDataset(Dataset):
             volume_profile = self._get_volume_profile(volume_profile_path)
             sample['volume_profile'] = volume_profile
 
-        print sample
-        fghjkl
+
         return sample
 
