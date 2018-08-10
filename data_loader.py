@@ -13,13 +13,26 @@ class Shape(Enum):
 
 
 class PouringDataset(Dataset):
-    def __init__(self, root_dir, is_train, load_volume=False, volume_dir=None, num_divisions=128, image_size=128, center=False):
+    def __init__(self, 
+                 root_dir,
+                 is_train,
+                 load_volume=False,
+                 volume_dir=None,
+                 num_divisions=128,
+                 image_size=128,
+                 center=False,
+                 calc_wait_times=False,
+                 load_speed_angle_and_scale=False):
+
         self.num_divisions = num_divisions
         self.root_dir = root_dir
         self.center = center
         self.image_size = image_size
         self.load_volume = load_volume
         self.volume_dir = volume_dir
+        self.calc_wait_times = calc_wait_times
+        self.load_speed_angle_and_scale = load_speed_angle_and_scale
+
         if is_train:
             file_path = os.path.join(root_dir, "train.txt")
         else:
@@ -71,7 +84,8 @@ class PouringDataset(Dataset):
                     d = float(split[1])
                 elif split[0] == 'neck_height:':
                     neck_height = float(split[1])
-                elif split[0] == 'Radius': # Hack because the flask cfgs were not correctly formatted
+                elif split[0] == 'Radius':
+                    # Hack because the flask cfgs were not correctly formatted
                     base_radius = float(split[-1])
 
             profile = np.zeros(self.num_divisions)
@@ -90,8 +104,8 @@ class PouringDataset(Dataset):
                 print "Invalid cfg file format"
             return profile
 
-    def _get_volume_profile(self, path):
-        data = np.loadtxt(path)
+    def _get_volume_profile(self, data):
+        
         max_volume = data[0, 1]
         # Flip volume to make it the amount in the receiving container
         # instead of the amount in the pouring container
@@ -104,6 +118,51 @@ class PouringDataset(Dataset):
             volume_profile[i] = np.mean(volumes[i * step_size:(i+1)*step_size])
 
         return volume_profile
+
+    def _calc_wait_times(self, volume_data, threshold_fraction=0.75):
+        eps = 0.000001
+
+        angles = volume_data[:, 2]
+
+        double_diff = np.diff(np.diff(angles))
+        start_indices = np.where(double_diff < -eps)
+        end_indices = np.where(double_diff > eps)
+
+        start_volumes = volume_data[start_indices, 0]
+        end_volumes = volume_data[end_indices, 0]
+
+        volume_differences = start_volumes - end_volumes
+        volume_thresholds = end_volumes + (1.0 - threshold_fraction) * volume_differences
+
+        volume_index = 0
+        wait_times = []
+        for i in range(len(volume_data)):
+            if volume_data[i, 0] > volume_thresholds[volume_index]:
+                wait_times.append(volume_data[i, 3] - volume_data[start_indices, 3])
+                volume_index += 1
+                if volume_index >= len(volume_thresholds):
+                    return wait_times
+
+        return wait_times
+
+
+    def _load_params(self, base_file_path):
+        file_path = base_file_path.split('.')[0] + '_params.txt'
+
+        with open(file_path, 'r') as param_file:
+            for line in param_file.lines:
+                split = line.split(' ')
+                if split[0] == 'rotation_speed':
+                    speed = float(split[1]):
+                elif split[0] == 'stop_angle':
+                    angle = float(split[1]):
+                elif split[0] == 'scaling_factor':
+                    scaling_factor = float(split[1])
+        return speed, angle, scaling_factor
+
+    def _rescale_depth_image(self, depth_image, scale):
+        depth_image = depth_image / scale
+
 
     def __getitem__(self, idx):
         base_file_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
@@ -120,12 +179,21 @@ class PouringDataset(Dataset):
         depth_image = cv2.resize(depth_image, (self.image_size, self.image_size))
         depth_image = 1.0 - depth_image.astype(float) / 255.0
 
+
         sample = {'cross_section_profile': profile, 'depth_image': depth_image}
 
         if self.load_volume:
             volume_profile_path = os.path.join(self.volume_dir, file_name + ".text")
-            volume_profile = self._get_volume_profile(volume_profile_path)
+            volume_data = np.loadtxt(volume_profile_path)
+            volume_profile = self._get_volume_profile(volume_data)
             sample['volume_profile'] = volume_profile
+
+            if self.calc_wait_times:
+                sample['wait_times'] = self._calc_wait_times(volume_data)
+
+        if self.load_speed_angle_and_scale:
+            sample['speed'], sample['angle'], scale = self._load_params(base_file_path)
+            sample['depth_image'] = self._rescale_depth_image(depth_image, scale)
 
 
         return sample

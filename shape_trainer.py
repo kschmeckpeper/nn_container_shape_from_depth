@@ -17,23 +17,31 @@ class ShapeTrainer(BaseTrainer):
 
     def _init_fn(self):
 
+        if self.options.task=='wait_times':
+            self.use_speed_and_angle = True
+        else:
+            self.use_speed_and_angle = False
+
         self.model = ConvNet(input_image_size=self.options.image_size,
                              num_output_channels=self.options.num_horz_divs,
                              num_hidden_channels=self.options.num_hidden_channels,
                              num_linear_layers=self.options.num_hidden_layers,
                              dropout_prob=self.options.dropout,
+                             use_speed_and_angle=self.use_speed_and_angle,
                              nonlinearity=self.options.nonlinearity).to(self.device)
 
 
         self.train_ds = PouringDataset(self.options.dataset_dir,
-                                       load_volume=self.options.task=='volume_profile',
+                                       load_volume=self.options.task!='cross_section',
+                                       calc_stopping=self.options.task=='wait_times',
                                        volume_dir=self.options.volume_dir,
                                        num_divisions=self.options.num_horz_divs,
                                        image_size=self.options.image_size,
                                        center=self.options.center,
                                        is_train=True)
         self.test_ds = PouringDataset(self.options.dataset_dir,
-                                      load_volume=self.options.task=='volume_profile',
+                                      load_volume=self.options.task!='cross_section',
+                                      calc_stopping=self.options.task=='wait_times',
                                       volume_dir=self.options.volume_dir,
                                       num_divisions = self.options.num_horz_divs,
                                       image_size=self.options.image_size,
@@ -80,6 +88,8 @@ class ShapeTrainer(BaseTrainer):
                     gt_profile = input_batch[j]['cross_section_profile'][i]
                 elif self.options.task == 'volume_profile':
                     gt_profile = input_batch[j]['volume_profile'][i]
+                elif self.options.task == 'wait_times':
+                    gt_profile = input_batch[j]['wait_times'][i]
                 else:
                     raise NotImplementedError('The requested task does not exist') 
 
@@ -159,14 +169,19 @@ class ShapeTrainer(BaseTrainer):
             gt_profiles = input_batch['cross_section_profile'].to(torch.float)
         elif self.options.task == 'volume_profile':
             gt_profiles = input_batch['volume_profile'].to(torch.float)
+        elif self.options.task == 'wait_times':
+            gt_profiles = input_batch['wait_times'].to(torch.float)
         else:
             raise NotImplementedError('The requested task does not exist') 
 
-        # Turn off gradients when testing
-        if is_train:
-            pred_profiles = self.model(depth_images)
+
+        if self.use_speed_and_angle:
+            speed = input_batch['speed'].to(torch.float)
+            angle = input_batch['angle'].to(torch.float)
+            with torch.set_grad_enabled(is_train):
+                pred_profiles = self.model(depth_images, speed, angle)
         else:
-            with torch.no_grad():
+            with torch.set_grad_enabled(is_train):
                 pred_profiles = self.model(depth_images)
 
 

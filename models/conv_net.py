@@ -12,9 +12,13 @@ class ConvNet(nn.Module):
                  conv_kernel=5,
                  num_linear_layers=3,
                  dropout_prob=0.0,
+                 use_speed_and_angle=False
                  nonlinearity='ReLU'):
+
         super(ConvNet, self).__init__()
         self.num_hidden_channels = num_hidden_channels
+        self.use_speed_and_angle = use_speed_and_angle
+
         conv_layers = OrderedDict()
         conv_layers['conv_0'] = nn.Conv2d(1, 64, 3, padding=1)
         conv_layers['norm_0'] = nn.BatchNorm2d(64)
@@ -97,6 +101,9 @@ class ConvNet(nn.Module):
         self.conv_network = nn.Sequential(conv_layers)
         self.conv_layers = conv_layers
 
+        if use_speed_and_angle:
+            num_hidden_channels += 2
+
         linear_layers = OrderedDict()
         for i in range(num_linear_layers):
             linear_layers[nonlinearity + '_linear_' + str(i)] = ConvNet._get_nonlinearity(nonlinearity)
@@ -111,6 +118,9 @@ class ConvNet(nn.Module):
 
 
     def forward(self, x):
+        if use_speed_and_angle:
+            raise NotImplementedError('When use_speed_and_angle is true, network requires speed and angle')
+
         #print "input", x.shape
         #x = self.conv_network(x)
         for layer in self.conv_layers:
@@ -125,6 +135,18 @@ class ConvNet(nn.Module):
         #print x.shape
         x = self.fully_connected_network(x)
 
+        return x + 1.0
+
+
+    def forward(self, x, speed, angle):
+        x = self.conv_network(x)
+        x = x.view(-1, x.shape[1] * x.shape[2] * x.shape[3])
+
+        print "Before", x.shape, speed.shape, angle.shape
+        x = torch.cat((x, speed, angle))
+        print "After", x.shape
+
+        x = self.fully_connected_network(x)
         return x + 1.0
         
 

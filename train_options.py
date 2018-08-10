@@ -12,6 +12,7 @@ class TrainOptions(BaseTrainOptions):
         task  = req.add_mutually_exclusive_group()
         task.add_argument('--cross_section', dest='task', action='store_const', const='cross_section')
         task.add_argument('--volume_profile', dest='task', action='store_const', const='volume_profile')
+        task.add_argument('--wait_times', dest='task', action='store_const', const='volume_profile')
         req.set_defaults(task='cross_section')
 
         gen = self.parser.add_argument_group('General')
