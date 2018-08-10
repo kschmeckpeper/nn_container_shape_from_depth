@@ -12,7 +12,7 @@ class ConvNet(nn.Module):
                  conv_kernel=5,
                  num_linear_layers=3,
                  dropout_prob=0.0,
-                 use_speed_and_angle=False
+                 use_speed_and_angle=False,
                  nonlinearity='ReLU'):
 
         super(ConvNet, self).__init__()
