@@ -33,7 +33,7 @@ class ShapeTrainer(BaseTrainer):
 
         self.train_ds = PouringDataset(self.options.dataset_dir,
                                        load_volume=self.options.task!='cross_section',
-                                       calc_stopping=self.options.task=='wait_times',
+                                       calc_wait_times=self.options.task=='wait_times',
                                        volume_dir=self.options.volume_dir,
                                        num_divisions=self.options.num_horz_divs,
                                        image_size=self.options.image_size,
@@ -41,7 +41,7 @@ class ShapeTrainer(BaseTrainer):
                                        is_train=True)
         self.test_ds = PouringDataset(self.options.dataset_dir,
                                       load_volume=self.options.task!='cross_section',
-                                      calc_stopping=self.options.task=='wait_times',
+                                      calc_wait_times=self.options.task=='wait_times',
                                       volume_dir=self.options.volume_dir,
                                       num_divisions = self.options.num_horz_divs,
                                       image_size=self.options.image_size,

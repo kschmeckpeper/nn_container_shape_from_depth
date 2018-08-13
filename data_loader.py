@@ -150,7 +150,7 @@ class PouringDataset(Dataset):
         file_path = base_file_path.split('.')[0] + '_params.txt'
 
         with open(file_path, 'r') as param_file:
-            for line in param_file.lines:
+            for line in param_file.readlines():
                 split = line.split(' ')
                 if split[0] == 'rotation_speed':
                     speed = float(split[1])
@@ -159,9 +159,6 @@ class PouringDataset(Dataset):
                 elif split[0] == 'scaling_factor':
                     scaling_factor = float(split[1])
         return speed, angle, scaling_factor
-
-    def _rescale_depth_image(self, depth_image, scale):
-        depth_image = depth_image / scale
 
 
     def __getitem__(self, idx):
@@ -193,7 +190,6 @@ class PouringDataset(Dataset):
 
         if self.load_speed_angle_and_scale:
             sample['speed'], sample['angle'], scale = self._load_params(base_file_path)
-            sample['depth_image'] = self._rescale_depth_image(depth_image, scale)
 
 
         return sample
