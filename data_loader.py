@@ -120,28 +120,25 @@ class PouringDataset(Dataset):
         return volume_profile
 
     def _calc_wait_times(self, volume_data, threshold_fraction=0.75):
-        eps = 0.000001
-
-        angles = volume_data[:, 2]
-
-        double_diff = np.diff(np.diff(angles))
-        start_indices = np.where(double_diff < -eps)
-        end_indices = np.where(double_diff > eps)
-
-        start_volumes = volume_data[start_indices, 0]
-        end_volumes = volume_data[end_indices, 0]
-
-        volume_differences = start_volumes - end_volumes
-        volume_thresholds = end_volumes + (1.0 - threshold_fraction) * volume_differences
-
-        volume_index = 0
         wait_times = []
-        for i in range(len(volume_data)):
-            if volume_data[i, 0] > volume_thresholds[volume_index]:
-                wait_times.append(volume_data[i, 3] - volume_data[start_indices, 3])
-                volume_index += 1
-                if volume_index >= len(volume_thresholds):
-                    return wait_times
+        start_index = -1
+        for i in range(1, len(volume_data)):
+            # If you find the start of a pause
+            if start_index == -1 and volume_data[i, 2] == volume_data[i-1, 2]:
+                start_index = i-1
+            # If you found the end of a pause
+            elif start_index != -1 and volume_data[i, 2] != volume_data[i-1, 2]:
+                start_vol = volume_data[start_index, 0]
+                end_vol = volume_data[i-1, 0]
+
+                threshold = start_vol - threshold_fraction * (start_vol - end_vol)
+
+                for j in range(start_index, i):
+                    if volume_data[j, 0] < threshold:
+                        wait_times.append(volume_data[j, 3] - volume_data[start_index, 3])
+                        start_index = -1
+                        continue
+
 
         return wait_times
 
