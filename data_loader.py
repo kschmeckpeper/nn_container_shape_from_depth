@@ -153,9 +153,9 @@ class PouringDataset(Dataset):
             for line in param_file.lines:
                 split = line.split(' ')
                 if split[0] == 'rotation_speed':
-                    speed = float(split[1]):
+                    speed = float(split[1])
                 elif split[0] == 'stop_angle':
-                    angle = float(split[1]):
+                    angle = float(split[1])
                 elif split[0] == 'scaling_factor':
                     scaling_factor = float(split[1])
         return speed, angle, scaling_factor
