@@ -189,7 +189,6 @@ class PouringDataset(Dataset):
                 sample['wait_times'] = self._calc_wait_times(volume_data)
 
         if self.load_speed_angle_and_scale:
-            print "Loading speed"
             sample['speed'], sample['angle'], scale = self._load_params(self.files[idx])
 
 
