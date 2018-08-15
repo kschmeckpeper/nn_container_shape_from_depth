@@ -119,6 +119,16 @@ class PouringDataset(Dataset):
 
         return volume_profile
 
+    def _find_wait_time(self, volume_data, start_index, i, threshold_fraction):
+        start_vol = volume_data[start_index, 0]
+        end_vol = volume_data[i-1, 0]
+
+        threshold = start_vol - threshold_fraction * (start_vol - end_vol)
+        for j in range(start_index, i):
+            if volume_data[j, 0] < threshold:
+                return volume_data[j, 3] - volume_data[start_index, 3]
+        return volume_data[i-1, 3] - volume_data[start_index, 3]
+
     def _calc_wait_times(self, volume_data, threshold_fraction=0.75):
         wait_times = []
         start_index = -1
@@ -127,19 +137,15 @@ class PouringDataset(Dataset):
             # If you find the start of a pause
             if start_index == -1 and volume_data[i, 2] == volume_data[i-1, 2]:
                 start_index = i-1
+
             # If you found the end of a pause
             elif start_index != -1 and volume_data[i, 2] != volume_data[i-1, 2]:
-                start_vol = volume_data[start_index, 0]
-                end_vol = volume_data[i-1, 0]
+                wait_times.append(self._find_wait_time(volume_data, start_index, i, threshold_fraction))
+                start_index = -1
 
-                threshold = start_vol - threshold_fraction * (start_vol - end_vol)
 
-                for j in range(start_index, i):
-                    if volume_data[j, 0] < threshold:
-                        wait_times.append(volume_data[j, 3] - volume_data[start_index, 3])
-                        start_index = -1
-                        continue
-
+        if start_index != -1:
+            wait_times.append(self._find_wait_time(volume_data, start_index, i, threshold_fraction))       
 
         return torch.tensor(wait_times[0])
 
