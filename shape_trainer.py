@@ -128,7 +128,7 @@ class ShapeTrainer(BaseTrainer):
         max_gt = 1.5
         #print output_profile.max(), output_profile.min()
         if self.options.task == 'wait_times':
-            max_gt = 10
+            max_gt = 20
 
         pixels_per_band = im_size / len(gt_profile)
         for i in range(len(gt_profile)):
