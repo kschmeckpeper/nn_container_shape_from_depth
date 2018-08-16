@@ -134,10 +134,12 @@ class ShapeTrainer(BaseTrainer):
         for i in range(len(gt_profile)):
             gt_index = int(1.0 * im_size * gt_profile[i] / max_gt)
             output_index = int(1.0 * im_size * output_profile[i] / max_gt)
-
+            
             start = im_size - pixels_per_band * (i + 1)
             end = im_size - pixels_per_band * (i)
-
+            
+            gt_index = max(0, gt_index)
+            gt_index = min(im_size-1, gt_index)
             image[0, start:end, gt_index] = 1
 
             output_index = max(0, output_index)
