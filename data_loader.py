@@ -124,6 +124,7 @@ class PouringDataset(Dataset):
         end_vol = volume_data[i-1, 0]
 
         threshold = start_vol - threshold_fraction * (start_vol - end_vol)
+
         for j in range(start_index, i):
             if volume_data[j, 0] < threshold:
                 return volume_data[j, 3] - volume_data[start_index, 3]
@@ -140,7 +141,10 @@ class PouringDataset(Dataset):
 
             # If you found the end of a pause
             elif start_index != -1 and volume_data[i, 2] != volume_data[i-1, 2]:
-                wait_times.append(self._find_wait_time(volume_data, start_index, i, threshold_fraction))
+                # Only counts the wait time if there was a significant difference
+                # between the starting and the ending volumes
+                if volume_data[start_index, 0] > volume_data[i-1, 0] + 10:
+                    wait_times.append(self._find_wait_time(volume_data, start_index, i, threshold_fraction))
                 start_index = -1
 
 
