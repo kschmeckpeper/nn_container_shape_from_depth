@@ -131,7 +131,7 @@ class ShapeTrainer(BaseTrainer):
             self.summary_writer.add_scalar('lr', self._get_lr(), self.step_count)
 
     def _make_profile_image(self, gt_profile, output_profile, im_size=128):
-        if self.options.num_horz_divs == 1:
+        if self.options.num_output_channels == 1:
             gt_profile = torch.tensor([gt_profile]).to(self.device)
 
         gt_profile = gt_profile.to(torch.float)
