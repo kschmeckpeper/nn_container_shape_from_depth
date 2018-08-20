@@ -26,7 +26,7 @@ class ShapeTrainer(BaseTrainer):
 
         if self.options.source == 'from_depth':
             self.model = ConvNet(input_image_size=self.options.image_size,
-                                 num_output_channels=self.options.num_output_divs,
+                                 num_output_channels=self.options.num_output_channels,
                                  num_hidden_channels=self.options.num_hidden_channels,
                                  num_linear_layers=self.options.num_hidden_layers,
                                  dropout_prob=self.options.dropout,
@@ -34,7 +34,7 @@ class ShapeTrainer(BaseTrainer):
                                  nonlinearity=self.options.nonlinearity).to(self.device)
         elif self.options.source == 'from_cross_section':
             self.model = FullyConnected(num_input_channels=self.options.num_horz_divs,
-                                        num_output_channels=self.options.num_output_divs,
+                                        num_output_channels=self.options.num_output_channels,
                                         num_hidden_channels=self.options.num_hidden_channels,
                                         num_hidden_layers=self.options.num_hidden_layers,
                                         dropout_prob=self.options.dropout,
