@@ -1,3 +1,4 @@
+import torch.nn as nn
 
 def get_nonlinearity(nonlinearity):
     ''' Looks up the correct nonlinearity to use
