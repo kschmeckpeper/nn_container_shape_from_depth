@@ -15,6 +15,11 @@ class TrainOptions(BaseTrainOptions):
         task.add_argument('--wait_times', dest='task', action='store_const', const='wait_times')
         req.set_defaults(task='cross_section')
 
+        source = req.add_mutually_exclusive_group()
+        source.add_argument('--from_depth', dest='source', action='store_const', const='from_depth')
+        source.add_argument('--from_cross_section', dest='source', action='store_const', const='from_cross_section')
+        req.set_defaults(source='from_depth')
+
         gen = self.parser.add_argument_group('General')
         gen.add_argument('--time_to_run', type=int, default=3600, help='Total time to run in seconds')
         gen.add_argument('--resume', dest='resume', default=False, action='store_true', help='Resume from checkpoint (Use latest checkpoint by default')
