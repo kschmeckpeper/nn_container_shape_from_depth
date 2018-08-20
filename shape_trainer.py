@@ -12,6 +12,7 @@ from tqdm import tqdm
 tqdm.monitor_interval = 0
 
 from models import ConvNet
+from models import FullyConnected
 
 class ShapeTrainer(BaseTrainer):
 
@@ -22,17 +23,31 @@ class ShapeTrainer(BaseTrainer):
         else:
             self.use_speed_and_angle = False
 
-        self.model = ConvNet(input_image_size=self.options.image_size,
-                             num_output_channels=self.options.num_horz_divs,
-                             num_hidden_channels=self.options.num_hidden_channels,
-                             num_linear_layers=self.options.num_hidden_layers,
-                             dropout_prob=self.options.dropout,
-                             use_speed_and_angle=self.use_speed_and_angle,
-                             nonlinearity=self.options.nonlinearity).to(self.device)
+
+        if self.options.source == 'from_depth':
+            self.model = ConvNet(input_image_size=self.options.image_size,
+                                 num_output_channels=self.options.num_output_channels,
+                                 num_hidden_channels=self.options.num_hidden_channels,
+                                 num_linear_layers=self.options.num_hidden_layers,
+                                 dropout_prob=self.options.dropout,
+                                 use_speed_and_angle=self.use_speed_and_angle,
+                                 nonlinearity=self.options.nonlinearity).to(self.device)
+        elif self.options.source == 'from_cross_section':
+            self.model = FullyConnected(num_input_channels=self.options.num_horz_divs,
+                                        num_output_channels=self.options.num_output_channels,
+                                        num_hidden_channels=self.options.num_hidden_channels,
+                                        num_hidden_layers=self.options.num_hidden_layers,
+                                        dropout_prob=self.options.dropout,
+                                        use_batch_norm=False,
+                                        use_speed_and_angle=self.use_speed_and_angle,
+                                        nonlinearity=self.options.nonlinearity).to(self.device)
+        else:
+            raise NotImplementedError('Invalid data source')
 
 
         self.train_ds = PouringDataset(self.options.dataset_dir,
                                        load_volume=self.options.task!='cross_section',
+                                       load_depth_image=self.options.source!='from_depth',
                                        calc_wait_times=self.options.task=='wait_times',
                                        load_speed_angle_and_scale=self.use_speed_and_angle,
                                        volume_dir=self.options.volume_dir,
@@ -42,6 +57,7 @@ class ShapeTrainer(BaseTrainer):
                                        is_train=True)
         self.test_ds = PouringDataset(self.options.dataset_dir,
                                       load_volume=self.options.task!='cross_section',
+                                      load_depth_image=self.options.source!='from_depth',
                                       calc_wait_times=self.options.task=='wait_times',
                                       load_speed_angle_and_scale=self.use_speed_and_angle,
                                       volume_dir=self.options.volume_dir,
@@ -115,7 +131,7 @@ class ShapeTrainer(BaseTrainer):
             self.summary_writer.add_scalar('lr', self._get_lr(), self.step_count)
 
     def _make_profile_image(self, gt_profile, output_profile, im_size=128):
-        if self.options.num_horz_divs == 1:
+        if self.options.num_output_channels == 1:
             gt_profile = torch.tensor([gt_profile]).to(self.device)
 
         gt_profile = gt_profile.to(torch.float)
@@ -175,8 +191,11 @@ class ShapeTrainer(BaseTrainer):
 
 
     def _train_or_test_step(self, input_batch, is_train):
-        depth_images = input_batch['depth_image'].to(torch.float)
-        depth_images = depth_images.view(-1, 1, depth_images.shape[1], depth_images.shape[2])
+        if self.options.source == 'from_depth':
+            depth_images = input_batch['depth_image'].to(torch.float)
+            input_data = depth_images.view(-1, 1, depth_images.shape[1], depth_images.shape[2])
+        elif self.options.source == 'from_cross_section':
+            input_data = input_batch['cross_section_profile'].to(torch.float)
 
         if self.options.task == 'cross_section':
             gt_profiles = input_batch['cross_section_profile'].to(torch.float)
@@ -192,10 +211,10 @@ class ShapeTrainer(BaseTrainer):
             speed = input_batch['speed'].to(torch.float)
             angle = input_batch['angle'].to(torch.float)
             with torch.set_grad_enabled(is_train):
-                pred_profiles = self.model(depth_images, speed, angle)
+                pred_profiles = self.model(input_data, speed, angle)
         else:
             with torch.set_grad_enabled(is_train):
-                pred_profiles = self.model(depth_images)
+                pred_profiles = self.model(input_data)
 
 
         loss = torch.tensor(0.0, device=self.device).to(torch.float)

@@ -15,6 +15,11 @@ class TrainOptions(BaseTrainOptions):
         task.add_argument('--wait_times', dest='task', action='store_const', const='wait_times')
         req.set_defaults(task='cross_section')
 
+        source = req.add_mutually_exclusive_group()
+        source.add_argument('--from_depth', dest='source', action='store_const', const='from_depth')
+        source.add_argument('--from_cross_section', dest='source', action='store_const', const='from_cross_section')
+        req.set_defaults(source='from_depth')
+
         gen = self.parser.add_argument_group('General')
         gen.add_argument('--time_to_run', type=int, default=3600, help='Total time to run in seconds')
         gen.add_argument('--resume', dest='resume', default=False, action='store_true', help='Resume from checkpoint (Use latest checkpoint by default')
@@ -69,6 +74,7 @@ class TrainOptions(BaseTrainOptions):
 
         arch = self.parser.add_argument_group('Architecture')
         arch.add_argument("--image_size", type=int, default=256, help="Scales all images to this size in pixels")
+        arch.add_argument("--num_output_channels", type=int, default=128, help="Number of output channels")
         arch.add_argument("--num_hidden_channels", type=int, default=1024, help="Number of hidden channels")
         arch.add_argument("--num_hidden_layers", type=int, default=3, help="Number of hidden layers")
         arch.add_argument("--num_horz_divs", type=int, default=128, help="Number of horizontal divisions to approximate the container with")

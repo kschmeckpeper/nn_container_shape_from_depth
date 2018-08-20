@@ -3,6 +3,7 @@ import numpy as np
 import math
 import torch
 from collections import OrderedDict
+from helpers import get_nonlinearity
 
 class ConvNet(nn.Module):
     def __init__(self,
@@ -88,13 +89,13 @@ class ConvNet(nn.Module):
         #num_conv_layers = int(math.ceil(math.log(input_image_size, 2))) - 2
 
         #for i in range(1, num_conv_layers):
-        #    conv_layers[nonlinearity + '_conv_0_' + str(i)] = ConvNet._get_nonlinearity(nonlinearity)
+        #    conv_layers[nonlinearity + '_conv_0_' + str(i)] = get_nonlinearity(nonlinearity)
         #    #conv_layers['dropout_conv_' + str(i)] = nn.Dropout(p=dropout_prob)
         #    conv_layers['conv_0_' + str(i)] = nn.Conv2d(num_hidden_channels/16, num_hidden_channels/16, conv_kernel, padding=(conv_kernel-1)/2)
-        #    conv_layers[nonlinearity + '_conv_1_' + str(i)] = ConvNet._get_nonlinearity(nonlinearity)
+        #    conv_layers[nonlinearity + '_conv_1_' + str(i)] = get_nonlinearity(nonlinearity)
         #    #conv_layers['dropout_conv_' + str(i)] = nn.Dropout(p=dropout_prob)
         #    conv_layers['conv_1_' + str(i)] = nn.Conv2d(num_hidden_channels/16, num_hidden_channels/16, conv_kernel, padding=(conv_kernel-1)/2)
-        #    conv_layers[nonlinearity + '_conv_2_' + str(i)] = ConvNet._get_nonlinearity(nonlinearity)
+        #    conv_layers[nonlinearity + '_conv_2_' + str(i)] = get_nonlinearity(nonlinearity)
         #    #conv_layers['dropout_conv_' + str(i)] = nn.Dropout(p=dropout_prob)
         #    conv_layers['conv_2_' + str(i)] = nn.Conv2d(num_hidden_channels/16, num_hidden_channels/16, conv_kernel, padding=(conv_kernel-1)/2)
 
@@ -107,12 +108,12 @@ class ConvNet(nn.Module):
 
         linear_layers = OrderedDict()
         for i in range(num_linear_layers):
-            linear_layers[nonlinearity + '_linear_' + str(i)] = ConvNet._get_nonlinearity(nonlinearity)
+            linear_layers[nonlinearity + '_linear_' + str(i)] = get_nonlinearity(nonlinearity)
             
             #linear_layers['dropout_linear_' + str(i)] = nn.Dropout(p=dropout_prob)
             linear_layers['linear_' + str(i)] = nn.Linear(num_hidden_channels, num_hidden_channels)
 
-        linear_layers[nonlinearity + '_final'] = ConvNet._get_nonlinearity(nonlinearity)
+        linear_layers[nonlinearity + '_final'] = get_nonlinearity(nonlinearity)
         linear_layers['output'] = nn.Linear(num_hidden_channels, num_output_channels)
         self.fully_connected_network = nn.Sequential(linear_layers)
 
@@ -158,13 +159,4 @@ class ConvNet(nn.Module):
         return x + 1.0
         
 
-    @staticmethod
-    def _get_nonlinearity(nonlinearity):
-        ''' Looks up the correct nonlinearity to use
-        '''
-        if nonlinearity == 'LeakyReLU':
-            return nn.LeakyReLU()
-        elif nonlinearity == 'ReLU':
-            return nn.ReLU()
-        else:
-            raise NotImplementedError('Invalid nonlinearity')
+

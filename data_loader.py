@@ -17,6 +17,7 @@ class PouringDataset(Dataset):
                  root_dir,
                  is_train,
                  load_volume=False,
+                 load_depth_image=False,
                  volume_dir=None,
                  num_divisions=128,
                  image_size=128,
@@ -29,6 +30,7 @@ class PouringDataset(Dataset):
         self.center = center
         self.image_size = image_size
         self.load_volume = load_volume
+        self.load_depth_image = load_depth_image
         self.volume_dir = volume_dir
         self.calc_wait_times = calc_wait_times
         self.load_speed_angle_and_scale = load_speed_angle_and_scale
@@ -170,20 +172,18 @@ class PouringDataset(Dataset):
 
 
     def __getitem__(self, idx):
-        base_file_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
 
         #file_name = '_'.join(self.files[idx].split('_')[:-1])
         file_name = self.files[idx].split('i')[0]
         cfg_file_path = os.path.join(self.root_dir, 'cfg_files', file_name + ".cfg")
-        #print base_file_path, cfg_file_path
         profile = self._get_container_profile(cfg_file_path)
 
 
-
-        depth_image = cv2.imread(base_file_path, cv2.IMREAD_GRAYSCALE)
-        #print base_file_path, depth_image.shape
-        depth_image = cv2.resize(depth_image, (self.image_size, self.image_size))
-        depth_image = 1.0 - depth_image.astype(float) / 255.0
+        if self.load_depth_image:
+            depth_image_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
+            depth_image = cv2.imread(depth_image_path, cv2.IMREAD_GRAYSCALE)
+            depth_image = cv2.resize(depth_image, (self.image_size, self.image_size))
+            depth_image = 1.0 - depth_image.astype(float) / 255.0
 
 
         sample = {'cross_section_profile': profile, 'depth_image': depth_image}
