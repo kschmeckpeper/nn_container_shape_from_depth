@@ -1,6 +1,7 @@
 import torch.nn as nn
 import numpy as np
 import math
+import torch
 from collections import OrderedDict
 
 class ConvNet(nn.Module):
@@ -139,12 +140,19 @@ class ConvNet(nn.Module):
 
 
     def forward(self, x, speed, angle):
-        x = self.conv_network(x)
+        #print "Input:", x.shape, speed.shape, angle.shape
+        #print speed
+        #print angle
+        #x = self.conv_network(x)
+        for layer in self.conv_layers:
+            #print "layer:", layer
+            x = self.conv_layers[layer](x)
+            #print "x", x.shape
         x = x.view(-1, x.shape[1] * x.shape[2] * x.shape[3])
 
-        print "Before", x.shape, speed.shape, angle.shape
-        x = torch.cat((x, speed, angle))
-        print "After", x.shape
+        #print "Before", x.shape, speed.shape, angle.shape
+        x = torch.cat((x, speed.view(speed.shape[0], 1), angle.view(angle.shape[0], 1)), dim=1)
+        #print "After", x.shape
 
         x = self.fully_connected_network(x)
         return x + 1.0

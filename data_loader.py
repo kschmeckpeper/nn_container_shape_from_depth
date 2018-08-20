@@ -119,32 +119,43 @@ class PouringDataset(Dataset):
 
         return volume_profile
 
+    def _find_wait_time(self, volume_data, start_index, i, threshold_fraction):
+        start_vol = volume_data[start_index, 0]
+        end_vol = volume_data[i-1, 0]
+
+        threshold = start_vol - threshold_fraction * (start_vol - end_vol)
+
+        for j in range(start_index, i):
+            if volume_data[j, 0] < threshold:
+                return volume_data[j, 3] - volume_data[start_index, 3]
+        return volume_data[i-1, 3] - volume_data[start_index, 3]
+
     def _calc_wait_times(self, volume_data, threshold_fraction=0.75):
         wait_times = []
         start_index = -1
+
         for i in range(1, len(volume_data)):
             # If you find the start of a pause
             if start_index == -1 and volume_data[i, 2] == volume_data[i-1, 2]:
                 start_index = i-1
+
             # If you found the end of a pause
             elif start_index != -1 and volume_data[i, 2] != volume_data[i-1, 2]:
-                start_vol = volume_data[start_index, 0]
-                end_vol = volume_data[i-1, 0]
-
-                threshold = start_vol - threshold_fraction * (start_vol - end_vol)
-
-                for j in range(start_index, i):
-                    if volume_data[j, 0] < threshold:
-                        wait_times.append(volume_data[j, 3] - volume_data[start_index, 3])
-                        start_index = -1
-                        continue
+                # Only counts the wait time if there was a significant difference
+                # between the starting and the ending volumes
+                if volume_data[start_index, 0] > volume_data[i-1, 0] + 10:
+                    wait_times.append(self._find_wait_time(volume_data, start_index, i, threshold_fraction))
+                start_index = -1
 
 
-        return wait_times
+        if start_index != -1:
+            wait_times.append(self._find_wait_time(volume_data, start_index, i, threshold_fraction))       
+
+        return torch.tensor(wait_times[0])
 
 
-    def _load_params(self, base_file_path):
-        file_path = base_file_path.split('.')[0] + '_params.txt'
+    def _load_params(self, file_name):
+        file_path = os.path.join(self.root_dir, 'params', file_name.split('.')[0] + '_params.txt')
 
         with open(file_path, 'r') as param_file:
             for line in param_file.readlines():
@@ -161,15 +172,16 @@ class PouringDataset(Dataset):
     def __getitem__(self, idx):
         base_file_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
 
-        file_name = '_'.join(self.files[idx].split('_')[:-1])
-
+        #file_name = '_'.join(self.files[idx].split('_')[:-1])
+        file_name = self.files[idx].split('i')[0]
         cfg_file_path = os.path.join(self.root_dir, 'cfg_files', file_name + ".cfg")
-        
+        #print base_file_path, cfg_file_path
         profile = self._get_container_profile(cfg_file_path)
 
 
 
         depth_image = cv2.imread(base_file_path, cv2.IMREAD_GRAYSCALE)
+        #print base_file_path, depth_image.shape
         depth_image = cv2.resize(depth_image, (self.image_size, self.image_size))
         depth_image = 1.0 - depth_image.astype(float) / 255.0
 
@@ -177,7 +189,8 @@ class PouringDataset(Dataset):
         sample = {'cross_section_profile': profile, 'depth_image': depth_image}
 
         if self.load_volume:
-            volume_profile_path = os.path.join(self.volume_dir, file_name + ".text")
+            #volume_profile_path = os.path.join(self.volume_dir, file_name + ".text")
+            volume_profile_path = os.path.join(self.volume_dir, self.files[idx].split('.')[0]+".text")
             volume_data = np.loadtxt(volume_profile_path)
             volume_profile = self._get_volume_profile(volume_data)
             sample['volume_profile'] = volume_profile
@@ -186,7 +199,7 @@ class PouringDataset(Dataset):
                 sample['wait_times'] = self._calc_wait_times(volume_data)
 
         if self.load_speed_angle_and_scale:
-            sample['speed'], sample['angle'], scale = self._load_params(base_file_path)
+            sample['speed'], sample['angle'], scale = self._load_params(self.files[idx])
 
 
         return sample

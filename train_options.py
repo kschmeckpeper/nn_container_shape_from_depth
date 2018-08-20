@@ -68,7 +68,7 @@ class TrainOptions(BaseTrainOptions):
         loss_type.add_argument('--smoothl1', dest='loss', action='store_const', const='SmoothL1', help='Use SmoothL1 Loss')
 
         arch = self.parser.add_argument_group('Architecture')
-        arch.add_argument("--image_size", type=int, default=128, help="Scales all images to this size in pixels")
+        arch.add_argument("--image_size", type=int, default=256, help="Scales all images to this size in pixels")
         arch.add_argument("--num_hidden_channels", type=int, default=1024, help="Number of hidden channels")
         arch.add_argument("--num_hidden_layers", type=int, default=3, help="Number of hidden layers")
         arch.add_argument("--num_horz_divs", type=int, default=128, help="Number of horizontal divisions to approximate the container with")

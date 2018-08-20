@@ -34,6 +34,7 @@ class ShapeTrainer(BaseTrainer):
         self.train_ds = PouringDataset(self.options.dataset_dir,
                                        load_volume=self.options.task!='cross_section',
                                        calc_wait_times=self.options.task=='wait_times',
+                                       load_speed_angle_and_scale=self.use_speed_and_angle,
                                        volume_dir=self.options.volume_dir,
                                        num_divisions=self.options.num_horz_divs,
                                        image_size=self.options.image_size,
@@ -42,6 +43,7 @@ class ShapeTrainer(BaseTrainer):
         self.test_ds = PouringDataset(self.options.dataset_dir,
                                       load_volume=self.options.task!='cross_section',
                                       calc_wait_times=self.options.task=='wait_times',
+                                      load_speed_angle_and_scale=self.use_speed_and_angle,
                                       volume_dir=self.options.volume_dir,
                                       num_divisions = self.options.num_horz_divs,
                                       image_size=self.options.image_size,
@@ -112,26 +114,37 @@ class ShapeTrainer(BaseTrainer):
         if is_train:
             self.summary_writer.add_scalar('lr', self._get_lr(), self.step_count)
 
-    def _make_profile_image(self, gt_profile, output_profile):
+    def _make_profile_image(self, gt_profile, output_profile, im_size=128):
+        if self.options.num_horz_divs == 1:
+            gt_profile = torch.tensor([gt_profile]).to(self.device)
+
         gt_profile = gt_profile.to(torch.float)
-        width = max(len(gt_profile), 128)
-        image = torch.zeros((3, len(gt_profile), width))
+
+        image = torch.zeros((3, im_size, im_size))
         
         max_gt = gt_profile.max() * 1.5
         max_img = output_profile.max() * 1.1
         max_gt = max(max_gt, max_img)
         max_gt = 1.5
         #print output_profile.max(), output_profile.min()
+        if self.options.task == 'wait_times':
+            max_gt = 20
 
+        pixels_per_band = im_size / len(gt_profile)
         for i in range(len(gt_profile)):
-            gt_index = int(1.0 * width * gt_profile[i] / max_gt)
-            output_index = int(1.0 * width * output_profile[i] / max_gt)
-
-            image[0, len(gt_profile) - i - 1, gt_index] = 1
+            gt_index = int(1.0 * im_size * gt_profile[i] / max_gt)
+            output_index = int(1.0 * im_size * output_profile[i] / max_gt)
+            
+            start = im_size - pixels_per_band * (i + 1)
+            end = im_size - pixels_per_band * (i)
+            
+            gt_index = max(0, gt_index)
+            gt_index = min(im_size-1, gt_index)
+            image[0, start:end, gt_index] = 1
 
             output_index = max(0, output_index)
-            output_index = min(width-1, output_index)
-            image[1, len(gt_profile) - i - 1, output_index] = 1
+            output_index = min(im_size-1, output_index)
+            image[1, start:end, output_index] = 1
         return image
 
     def test(self):
