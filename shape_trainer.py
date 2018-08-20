@@ -12,6 +12,7 @@ from tqdm import tqdm
 tqdm.monitor_interval = 0
 
 from models import ConvNet
+from models import FullyConnected
 
 class ShapeTrainer(BaseTrainer):
 
