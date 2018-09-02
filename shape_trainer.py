@@ -47,7 +47,7 @@ class ShapeTrainer(BaseTrainer):
 
         self.train_ds = PouringDataset(self.options.dataset_dir,
                                        load_volume=self.options.task!='cross_section',
-                                       load_depth_image=self.options.source!='from_depth',
+                                       load_depth_image=self.options.source=='from_depth',
                                        calc_wait_times=self.options.task=='wait_times',
                                        load_speed_angle_and_scale=self.use_speed_and_angle,
                                        volume_dir=self.options.volume_dir,
@@ -57,7 +57,7 @@ class ShapeTrainer(BaseTrainer):
                                        is_train=True)
         self.test_ds = PouringDataset(self.options.dataset_dir,
                                       load_volume=self.options.task!='cross_section',
-                                      load_depth_image=self.options.source!='from_depth',
+                                      load_depth_image=self.options.source=='from_depth',
                                       calc_wait_times=self.options.task=='wait_times',
                                       load_speed_angle_and_scale=self.use_speed_and_angle,
                                       volume_dir=self.options.volume_dir,
@@ -112,14 +112,18 @@ class ShapeTrainer(BaseTrainer):
                     raise NotImplementedError('The requested task does not exist') 
 
                 profile_image = self._make_profile_image(gt_profile, pred_profiles[j][i])
-                profile_image = profile_image.to(self.device, dtype=torch.float64)
+                profile_image = profile_image.to('cpu', dtype=torch.float32)
 
-                resized_image = cv2.resize(input_batch[j]['depth_image'][i].cpu().numpy(), (profile_image.shape[1], profile_image.shape[2]))
-                resized_image = torch.from_numpy(resized_image)
-                color_image = torch.zeros_like(profile_image)
-                color_image[0, :, :] = resized_image
-                color_image[1, :, :] = resized_image
-                color_image[2, :, :] = resized_image
+                if 'depth_image' in input_batch[j]:
+                    resized_image = cv2.resize(input_batch[j]['depth_image'][i].cpu().numpy(), (profile_image.shape[1], profile_image.shape[2]))
+                    resized_image = torch.from_numpy(resized_image)
+                    color_image = torch.zeros_like(profile_image)
+                    color_image[0, :, :] = resized_image
+                    color_image[1, :, :] = resized_image
+                    color_image[2, :, :] = resized_image
+                else:
+                    color_image = self._make_profile_image(input_batch[j]['cross_section_profile'][i], np.zeros(len(input_batch[j]['cross_section_profile'][i])))
+                    color_image.to('cpu', dtype=torch.float32)
 
                 profile_images.append(color_image)
                 profile_images.append(profile_image)
@@ -131,7 +135,7 @@ class ShapeTrainer(BaseTrainer):
             self.summary_writer.add_scalar('lr', self._get_lr(), self.step_count)
 
     def _make_profile_image(self, gt_profile, output_profile, im_size=128):
-        if self.options.num_output_channels == 1:
+        if len(gt_profile.shape) == 0:
             gt_profile = torch.tensor([gt_profile]).to(self.device)
 
         gt_profile = gt_profile.to(torch.float)

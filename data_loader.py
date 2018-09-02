@@ -178,15 +178,13 @@ class PouringDataset(Dataset):
         cfg_file_path = os.path.join(self.root_dir, 'cfg_files', file_name + ".cfg")
         profile = self._get_container_profile(cfg_file_path)
 
-
+        sample = {'cross_section_profile': profile}
         if self.load_depth_image:
             depth_image_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
             depth_image = cv2.imread(depth_image_path, cv2.IMREAD_GRAYSCALE)
             depth_image = cv2.resize(depth_image, (self.image_size, self.image_size))
             depth_image = 1.0 - depth_image.astype(float) / 255.0
-
-
-        sample = {'cross_section_profile': profile, 'depth_image': depth_image}
+            sample['depth_image'] = depth_image
 
         if self.load_volume:
             #volume_profile_path = os.path.join(self.volume_dir, file_name + ".text")
