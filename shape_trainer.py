@@ -33,7 +33,7 @@ class ShapeTrainer(BaseTrainer):
                                  use_speed_and_angle=self.use_speed_and_angle,
                                  nonlinearity=self.options.nonlinearity).to(self.device)
         elif self.options.source == 'from_cross_section':
-            self.model = FullyConnected(num_input_channels=self.options.num_horz_divs,
+            self.model = FullyConnected(num_input_channels=self.options.num_horz_divs+1, # Plus 1 for height
                                         num_output_channels=self.options.num_output_channels,
                                         num_hidden_channels=self.options.num_hidden_channels,
                                         num_hidden_layers=self.options.num_hidden_layers,
@@ -200,7 +200,8 @@ class ShapeTrainer(BaseTrainer):
             input_data = depth_images.view(-1, 1, depth_images.shape[1], depth_images.shape[2])
         elif self.options.source == 'from_cross_section':
             input_data = input_batch['cross_section_profile'].to(torch.float)
-
+            heights = input_batch['height'].to(torch.float)
+            input_data = torch.cat((input_data, heights.view(heights.shape[0], 1)), dim=1)
         if self.options.task == 'cross_section':
             gt_profiles = input_batch['cross_section_profile'].to(torch.float)
         elif self.options.task == 'volume_profile':

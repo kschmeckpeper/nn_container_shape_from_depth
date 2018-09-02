@@ -68,7 +68,7 @@ class PouringDataset(Dataset):
             b = 0
             c = 0
             d = 0
-
+            height = float(lines[2])
             for line in lines:
                 split = line.split()
                 # print split
@@ -104,7 +104,7 @@ class PouringDataset(Dataset):
                 profile[split:] = np.linspace(neck_radius, neck_radius, self.num_divisions - split)
             else:
                 print "Invalid cfg file format"
-            return profile
+            return profile, height
 
     def _get_volume_profile(self, data):
         
@@ -176,9 +176,9 @@ class PouringDataset(Dataset):
         #file_name = '_'.join(self.files[idx].split('_')[:-1])
         file_name = self.files[idx].split('i')[0]
         cfg_file_path = os.path.join(self.root_dir, 'cfg_files', file_name + ".cfg")
-        profile = self._get_container_profile(cfg_file_path)
+        profile, height = self._get_container_profile(cfg_file_path)
 
-        sample = {'cross_section_profile': profile}
+        sample = {'cross_section_profile': profile, 'height': height}
         if self.load_depth_image:
             depth_image_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
             depth_image = cv2.imread(depth_image_path, cv2.IMREAD_GRAYSCALE)
