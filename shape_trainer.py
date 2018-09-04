@@ -122,7 +122,7 @@ class ShapeTrainer(BaseTrainer):
                     color_image[1, :, :] = resized_image
                     color_image[2, :, :] = resized_image
                 else:
-                    color_image = self._make_profile_image(input_batch[j]['cross_section_profile'][i], np.zeros(len(input_batch[j]['cross_section_profile'][i])))
+                    color_image = self._make_profile_image(input_batch[j]['cross_section_profile'][i]*128, np.zeros(len(input_batch[j]['cross_section_profile'][i])))
                     color_image.to('cpu', dtype=torch.float32)
 
                 profile_images.append(color_image)
@@ -135,8 +135,10 @@ class ShapeTrainer(BaseTrainer):
             self.summary_writer.add_scalar('lr', self._get_lr(), self.step_count)
 
     def _make_profile_image(self, gt_profile, output_profile, im_size=128):
+        started_1d = False
         if len(gt_profile.shape) == 0:
             gt_profile = torch.tensor([gt_profile]).to(self.device)
+            started_1d = True
 
         gt_profile = gt_profile.to(torch.float)
 
@@ -165,6 +167,19 @@ class ShapeTrainer(BaseTrainer):
             output_index = max(0, output_index)
             output_index = min(im_size-1, output_index)
             image[1, start:end, output_index] = 1
+        if started_1d:
+            text_image = np.zeros((im_size, im_size))
+            cv2.putText(text_image,
+                        str.format('{0:.3}/{0:.3}',float(gt_profile[0]), float(output_profile[0])),
+                        (10, im_size - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        1,
+                        2)
+            text_image = torch.Tensor(text_image)
+            image[0, :, :] += text_image
+            image[1, :, :] += text_image
+            image[2, :, :] += text_image
         return image
 
     def test(self):
