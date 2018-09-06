@@ -152,8 +152,12 @@ class PouringDataset(Dataset):
 
         if start_index != -1:
             wait_times.append(self._find_wait_time(volume_data, start_index, i, threshold_fraction))       
+        
+        # Sets ground truth to zero when container is empty
+        if len(wait_times) == 0:
+            wait_times.append(0)
 
-        return torch.tensor(wait_times[0])
+        return torch.tensor(wait_times[0]).to(torch.float)
 
 
     def _load_params(self, file_name):
@@ -177,7 +181,7 @@ class PouringDataset(Dataset):
         file_name = self.files[idx].split('i')[0]
         cfg_file_path = os.path.join(self.root_dir, 'cfg_files', file_name + ".cfg")
         profile, height = self._get_container_profile(cfg_file_path)
-
+        print self.files[idx]
         sample = {'cross_section_profile': profile, 'height': height}
         if self.load_depth_image:
             depth_image_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
