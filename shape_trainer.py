@@ -99,17 +99,23 @@ class ShapeTrainer(BaseTrainer):
 
         self.summary_writer.add_scalar(prefix + 'loss', loss, self.step_count)
 
+        goal_key = ''
+        if self.options.task == 'cross_section':
+            goal_key = 'cross_section_profile'
+        elif self.options.task == 'volume_profile':
+            goal_key = 'volume_profile'
+        elif self.options.task == 'wait_times':
+            goal_key = 'wait_times'
+        else:
+            raise NotImplementedError('The requested task does not exist')
+
+        percent_error = 0.0
+        percent_usable = 0.0
+
         profile_images = []
         for j in range(len(pred_profiles)):
             for i in range(len(pred_profiles[j])):
-                if self.options.task == 'cross_section':
-                    gt_profile = input_batch[j]['cross_section_profile'][i]
-                elif self.options.task == 'volume_profile':
-                    gt_profile = input_batch[j]['volume_profile'][i]
-                elif self.options.task == 'wait_times':
-                    gt_profile = input_batch[j]['wait_times'][i]
-                else:
-                    raise NotImplementedError('The requested task does not exist') 
+                gt_profile = input_batch[j][goal_key][i]
 
                 profile_image = self._make_profile_image(gt_profile, pred_profiles[j][i])
                 profile_image = profile_image.to('cpu', dtype=torch.float32)
@@ -122,11 +128,21 @@ class ShapeTrainer(BaseTrainer):
                     color_image[1, :, :] = resized_image
                     color_image[2, :, :] = resized_image
                 else:
-                    color_image = self._make_profile_image(input_batch[j]['cross_section_profile'][i]*128, np.zeros(len(input_batch[j]['cross_section_profile'][i])))
+                    color_image = self._make_profile_image(input_batch[j]['cross_section_profile'][i]*128, np.zeros(len(input_batch[j]['cross_section_profile'][i])), speed=input_batch[j]['speed'][i], angle=input_batch[j]['angle'][i])
                     color_image.to('cpu', dtype=torch.float32)
 
                 profile_images.append(color_image)
                 profile_images.append(profile_image)
+                if torch.sum(torch.abs(gt_profile - pred_profiles[j][i])) < 0.5:
+                    percent_usable += 1
+                percent_error += torch.sum(torch.abs(gt_profile - pred_profiles[j][i]) / gt_profile)
+        percent_error /= len(pred_profiles)
+        percent_error /= len(pred_profiles[0])
+        self.summary_writer.add_scalar(prefix + 'percent_error', percent_error, self.step_count)
+
+        percent_usable /= len(pred_profiles)
+        percent_usable /= len(pred_profiles[0])
+        self.summary_writer.add_scalar(prefix + 'percent_usable', percent_usable, self.step_count)
 
 
         profile_image_grid = make_grid(profile_images, pad_value=1, nrow=4)
@@ -134,7 +150,7 @@ class ShapeTrainer(BaseTrainer):
         if is_train:
             self.summary_writer.add_scalar('lr', self._get_lr(), self.step_count)
 
-    def _make_profile_image(self, gt_profile, output_profile, im_size=128):
+    def _make_profile_image(self, gt_profile, output_profile, im_size=128, speed=-1, angle=-1):
         started_1d = False
         if len(gt_profile.shape) == 0:
             gt_profile = torch.tensor([gt_profile]).to(self.device)
@@ -170,7 +186,7 @@ class ShapeTrainer(BaseTrainer):
         if started_1d:
             text_image = np.zeros((im_size, im_size))
             cv2.putText(text_image,
-                        str.format('{0:.3}/{0:.3}',float(gt_profile[0]), float(output_profile[0])),
+                        str.format('{0:.3}/{1:.3}',float(gt_profile[0]), float(output_profile[0])),
                         (10, im_size - 10),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.5,
@@ -180,6 +196,36 @@ class ShapeTrainer(BaseTrainer):
             image[0, :, :] += text_image
             image[1, :, :] += text_image
             image[2, :, :] += text_image
+
+        if speed > 0:
+            text_image = np.zeros((im_size, im_size))
+            cv2.putText(text_image,
+                        str.format('s: {0:.3}',float(speed)),
+                        (10, 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        1,
+                        2)
+            text_image = torch.Tensor(text_image)
+            image[0, :, :] += text_image
+            image[1, :, :] += text_image
+            image[2, :, :] += text_image
+
+        if angle > 0:
+            text_image = np.zeros((im_size, im_size))
+            cv2.putText(text_image,
+                        str.format('a: {0:.3}',float(angle)),
+                        (10, im_size - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        1,
+                        2)
+            text_image = torch.Tensor(text_image)
+            image[0, :, :] += text_image
+            image[1, :, :] += text_image
+            image[2, :, :] += text_image
+
+
         return image
 
     def test(self):
