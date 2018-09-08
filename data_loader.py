@@ -4,7 +4,7 @@ import os
 from enum import Enum
 import torch
 import cv2
-
+from sets import Set
 class Shape(Enum):
     STRAIGHT=0
     FLASK=1
@@ -22,6 +22,7 @@ class PouringDataset(Dataset):
                  num_divisions=128,
                  image_size=128,
                  center=False,
+                 add_noise=False,
                  calc_wait_times=False,
                  load_speed_angle_and_scale=False):
 
@@ -34,14 +35,29 @@ class PouringDataset(Dataset):
         self.volume_dir = volume_dir
         self.calc_wait_times = calc_wait_times
         self.load_speed_angle_and_scale = load_speed_angle_and_scale
+        self.add_noise = add_noise and is_train
 
         if is_train:
             file_path = os.path.join(root_dir, "train.txt")
         else:
             file_path = os.path.join(root_dir, "test.txt")
 
+        self.bad_set = Set([])
+        self.bad_file = open("bad_file.txt", "r")
+        for line in self.bad_file:
+            self.bad_set.add(line.rstrip())
+        print self.bad_set
+        self.bad_file = open("bad_file.txt", "a")
+
         with open(file_path, 'r') as data_file:
-            self.files = data_file.read().splitlines()
+            count = 0
+            self.files = []
+            for line in data_file:
+                count += 1
+                line = line.rstrip()
+                if line not in self.bad_set:
+                    self.files.append(line)
+        print len(self.files), count
 
     def __len__(self):
         return len(self.files)
@@ -96,7 +112,7 @@ class PouringDataset(Dataset):
                 profile = np.linspace(base_radius, neck_radius, self.num_divisions)
 
             elif shape == Shape.SINUSOID:
-                profile = a * np.sin( b * np.linspace(0, 1, self.num_divisions) + c) + d
+                profile = a * np.sin( b * np.linspace(0, height, self.num_divisions) + c) + d
 
             elif shape == Shape.FLASK:
                 split = int(self.num_divisions * (1 - neck_height))
@@ -152,12 +168,14 @@ class PouringDataset(Dataset):
 
         if start_index != -1:
             wait_times.append(self._find_wait_time(volume_data, start_index, i, threshold_fraction))       
-        
+        bad = False
         # Sets ground truth to zero when container is empty
         if len(wait_times) == 0:
             wait_times.append(0)
-
-        return torch.tensor(wait_times[0]).to(torch.float)
+        if volume_data[start_index, 0]- volume_data[i, 0] < 10:
+            wait_times[0] = 0.0
+            bad = True
+        return torch.tensor(wait_times[0]).to(torch.float), bad
 
 
     def _load_params(self, file_name):
@@ -181,8 +199,8 @@ class PouringDataset(Dataset):
         file_name = self.files[idx].split('i')[0]
         cfg_file_path = os.path.join(self.root_dir, 'cfg_files', file_name + ".cfg")
         profile, height = self._get_container_profile(cfg_file_path)
-        print self.files[idx]
-        sample = {'cross_section_profile': profile, 'height': height}
+        #print self.files[idx]
+        sample = {'cross_section_profile': profile, 'height': height, 'name': torch.tensor(float(self.files[idx][14:-4].replace('iteration', '').split('_')[0]))}
         if self.load_depth_image:
             depth_image_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
             depth_image = cv2.imread(depth_image_path, cv2.IMREAD_GRAYSCALE)
@@ -198,10 +216,19 @@ class PouringDataset(Dataset):
             sample['volume_profile'] = volume_profile
 
             if self.calc_wait_times:
-                sample['wait_times'] = self._calc_wait_times(volume_data)
+                sample['wait_times'], bad = self._calc_wait_times(volume_data)
+                if bad:
+                    if(self.files[idx]) not in self.bad_set:
+                        print self.files[idx]
+                        self.bad_set.add(self.files[idx])
+                        self.bad_file.write(self.files[idx] + "\n")
+                        self.bad_file.flush()
 
         if self.load_speed_angle_and_scale:
             sample['speed'], sample['angle'], scale = self._load_params(self.files[idx])
+            if self.add_noise:
+                sample['speed'] *= (0.95 + 0.1 * np.random.random())
+                sample['angle'] *= (0.95 + 0.1 * np.random.random())
 
 
         return sample

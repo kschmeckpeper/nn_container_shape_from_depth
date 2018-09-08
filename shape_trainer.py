@@ -54,6 +54,7 @@ class ShapeTrainer(BaseTrainer):
                                        num_divisions=self.options.num_horz_divs,
                                        image_size=self.options.image_size,
                                        center=self.options.center,
+                                       add_noise=self.options.add_noise,
                                        is_train=True)
         self.test_ds = PouringDataset(self.options.dataset_dir,
                                       load_volume=self.options.task!='cross_section',
@@ -64,6 +65,7 @@ class ShapeTrainer(BaseTrainer):
                                       num_divisions = self.options.num_horz_divs,
                                       image_size=self.options.image_size,
                                       center=self.options.center,
+                                      add_noise=False,
                                       is_train=False)
 
         if self.options.optimizer == 'sgd':
@@ -128,7 +130,7 @@ class ShapeTrainer(BaseTrainer):
                     color_image[1, :, :] = resized_image
                     color_image[2, :, :] = resized_image
                 else:
-                    color_image = self._make_profile_image(input_batch[j]['cross_section_profile'][i]*128, np.zeros(len(input_batch[j]['cross_section_profile'][i])), speed=input_batch[j]['speed'][i], angle=input_batch[j]['angle'][i])
+                    color_image = self._make_profile_image(input_batch[j]['cross_section_profile'][i]*128, np.zeros(len(input_batch[j]['cross_section_profile'][i])), speed=input_batch[j]['speed'][i], angle=input_batch[j]['angle'][i], name=input_batch[j]['name'][i])
                     color_image.to('cpu', dtype=torch.float32)
 
                 profile_images.append(color_image)
@@ -150,7 +152,7 @@ class ShapeTrainer(BaseTrainer):
         if is_train:
             self.summary_writer.add_scalar('lr', self._get_lr(), self.step_count)
 
-    def _make_profile_image(self, gt_profile, output_profile, im_size=128, speed=-1, angle=-1):
+    def _make_profile_image(self, gt_profile, output_profile, im_size=128, speed=-1, angle=-1, name=-1):
         started_1d = False
         if len(gt_profile.shape) == 0:
             gt_profile = torch.tensor([gt_profile]).to(self.device)
@@ -216,6 +218,20 @@ class ShapeTrainer(BaseTrainer):
             cv2.putText(text_image,
                         str.format('a: {0:.3}',float(angle)),
                         (10, im_size - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        1,
+                        2)
+            text_image = torch.Tensor(text_image)
+            image[0, :, :] += text_image
+            image[1, :, :] += text_image
+            image[2, :, :] += text_image
+
+        if name > -1:
+            text_image = np.zeros((im_size, im_size))
+            cv2.putText(text_image,
+                        str.format('n: {0:.3}',float(name)),
+                        (10, 50),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.5,
                         1,
