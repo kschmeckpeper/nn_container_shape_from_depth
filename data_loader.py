@@ -22,7 +22,8 @@ class PouringDataset(Dataset):
                  num_divisions=128,
                  image_size=128,
                  center=False,
-                 add_noise=False,
+                 add_noise_speed_angle=0.0,
+                 add_noise_cross_section=0.0,
                  calc_wait_times=False,
                  load_speed_angle_and_scale=False):
 
@@ -35,7 +36,11 @@ class PouringDataset(Dataset):
         self.volume_dir = volume_dir
         self.calc_wait_times = calc_wait_times
         self.load_speed_angle_and_scale = load_speed_angle_and_scale
-        self.add_noise = add_noise and is_train
+        self.add_noise_speed_angle = 0.0
+        self.add_noise_cross_section = 0.0
+        if is_train:
+            self.add_noise_speed_angle = add_noise_speed_angle
+            self.add_noise_cross_section = add_noise_cross_section
 
         if is_train:
             file_path = os.path.join(root_dir, "train.txt")
@@ -199,8 +204,14 @@ class PouringDataset(Dataset):
         file_name = self.files[idx].split('i')[0]
         cfg_file_path = os.path.join(self.root_dir, 'cfg_files', file_name + ".cfg")
         profile, height = self._get_container_profile(cfg_file_path)
+
+        for i in range(len(profile)):
+            profile[i] *= (1.0 - self.add_noise_cross_section + 
+                           2 * self.add_noise_cross_section * np.random.random())
         #print self.files[idx]
-        sample = {'cross_section_profile': profile, 'height': height, 'name': torch.tensor(float(self.files[idx][14:-4].replace('iteration', '').split('_')[0]))}
+        sample = {'cross_section_profile': profile,
+                  'height': height, 
+                  'name': torch.tensor(float(self.files[idx][14:-4].replace('iteration', '').split('_')[0]))}
         if self.load_depth_image:
             depth_image_path = os.path.join(self.root_dir, 'depth_images', self.files[idx])
             depth_image = cv2.imread(depth_image_path, cv2.IMREAD_GRAYSCALE)
@@ -226,9 +237,11 @@ class PouringDataset(Dataset):
 
         if self.load_speed_angle_and_scale:
             sample['speed'], sample['angle'], scale = self._load_params(self.files[idx])
-            if self.add_noise:
-                sample['speed'] *= (0.95 + 0.1 * np.random.random())
-                sample['angle'] *= (0.95 + 0.1 * np.random.random())
+            
+            sample['speed'] *= (1.0 - self.add_noise_speed_angle +
+                                2 * self.add_noise_speed_angle * np.random.random())
+            sample['angle'] *= (1.0 - self.add_noise_speed_angle +
+                                2 * self.add_noise_speed_angle * np.random.random())
 
 
         return sample

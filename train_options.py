@@ -53,7 +53,8 @@ class TrainOptions(BaseTrainOptions):
         train.add_argument('--checkpoint_steps', type=int, default=10000, help='Chekpoint saving frequency')
         train.add_argument('--test_steps', type=int, default=500, help='Testing frequency')
         train.add_argument('--test_iters', type=int, default=200, help='Number of testing iterations')
-        train.add_argument('--add_noise', type=bool, default=False, help='Add noise to speed/angle')
+        train.add_argument('--add_noise_speed_angle', type=float, default=0.0, help='Add noise to speed/angle')
+        train.add_argument('--add_noise_cross_section', type=float, default=0.0, help='Add noise to cross section')
 
 
         optim = self.parser.add_argument_group('Optimization')

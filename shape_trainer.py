@@ -54,7 +54,8 @@ class ShapeTrainer(BaseTrainer):
                                        num_divisions=self.options.num_horz_divs,
                                        image_size=self.options.image_size,
                                        center=self.options.center,
-                                       add_noise=self.options.add_noise,
+                                       add_noise_speed_angle=self.options.add_noise_speed_angle,
+                                       add_noise_cross_section=self.options.add_noise_cross_section,
                                        is_train=True)
         self.test_ds = PouringDataset(self.options.dataset_dir,
                                       load_volume=self.options.task!='cross_section',
@@ -65,7 +66,8 @@ class ShapeTrainer(BaseTrainer):
                                       num_divisions = self.options.num_horz_divs,
                                       image_size=self.options.image_size,
                                       center=self.options.center,
-                                      add_noise=False,
+                                      add_noise_speed_angle=0,
+                                      add_noise_cross_section=0,
                                       is_train=False)
 
         if self.options.optimizer == 'sgd':
