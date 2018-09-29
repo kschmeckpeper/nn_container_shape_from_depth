@@ -55,7 +55,7 @@ class TrainOptions(BaseTrainOptions):
         train.add_argument('--test_iters', type=int, default=200, help='Number of testing iterations')
         train.add_argument('--add_noise_speed_angle', type=float, default=0.0, help='Add noise to speed/angle')
         train.add_argument('--add_noise_cross_section', type=float, default=0.0, help='Add noise to cross section')
-
+        train.add_argument('--threshold_fraction', type=float, default=0.75, help='Threshold fraction for calculating wait times')
 
         optim = self.parser.add_argument_group('Optimization')
         optim_type = optim.add_mutually_exclusive_group()

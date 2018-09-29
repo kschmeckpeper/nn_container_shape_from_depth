@@ -25,6 +25,7 @@ class PouringDataset(Dataset):
                  add_noise_speed_angle=0.0,
                  add_noise_cross_section=0.0,
                  calc_wait_times=False,
+                 threshold_fraction=0.75,
                  load_speed_angle_and_scale=False):
 
         self.num_divisions = num_divisions
@@ -38,6 +39,7 @@ class PouringDataset(Dataset):
         self.load_speed_angle_and_scale = load_speed_angle_and_scale
         self.add_noise_speed_angle = 0.0
         self.add_noise_cross_section = 0.0
+        self.threshold_fraction = threshold_fraction
         if is_train:
             self.add_noise_speed_angle = add_noise_speed_angle
             self.add_noise_cross_section = add_noise_cross_section
@@ -227,7 +229,7 @@ class PouringDataset(Dataset):
             sample['volume_profile'] = volume_profile
 
             if self.calc_wait_times:
-                sample['wait_times'], bad = self._calc_wait_times(volume_data)
+                sample['wait_times'], bad = self._calc_wait_times(volume_data, self.threshold_fraction)
                 if bad:
                     if(self.files[idx]) not in self.bad_set:
                         print self.files[idx]
