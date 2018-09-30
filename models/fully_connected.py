@@ -34,10 +34,10 @@ class FullyConnected(nn.Module):
         else:
             conv_layers = OrderedDict()
             for i in range(num_init_conv_layers):
-                conv_layers['conv'+str(i)] = nn.Conv1d(i * 8 + 1, (i+1) * 8 + 1, 7)
+                conv_layers['conv'+str(i)] = nn.Conv1d(i * 8 + 1, (i+1) * 8 + 1, kernel_size)
                 conv_layers[nonlinearity + '_' + str(i)] = get_nonlinearity(nonlinearity)
             self.conv_network = nn.Sequential(conv_layers)
-
+            print ((i+1)*8+1), (num_input_channels -2 -(i+1)* (kernel_size-1))
             layers['input'] = nn.Linear(((i+1)*8+1) * (num_input_channels -2 -(i+1)* (kernel_size-1)) + 2, num_hidden_channels[0])
                  
 
@@ -69,7 +69,7 @@ class FullyConnected(nn.Module):
         else:
             x = x.view(x.shape[0], 1, -1)
             x = self.conv_network(x)
-
+            print x.shape
             x = x.view(x.shape[0], -1)
             x = torch.cat((x, speed.view(speed.shape[0], 1), angle.view(angle.shape[0], 1)), dim=1)
             out = self.network(x)
