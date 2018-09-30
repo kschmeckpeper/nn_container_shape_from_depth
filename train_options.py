@@ -56,6 +56,7 @@ class TrainOptions(BaseTrainOptions):
         train.add_argument('--add_noise_speed_angle', type=float, default=0.0, help='Add noise to speed/angle')
         train.add_argument('--add_noise_cross_section', type=float, default=0.0, help='Add noise to cross section')
         train.add_argument('--threshold_fraction', type=float, default=0.75, help='Threshold fraction for calculating wait times')
+        train.add_argument('--add_one', type=bool, default=True, help='Adds one to the output of the network')
 
         optim = self.parser.add_argument_group('Optimization')
         optim_type = optim.add_mutually_exclusive_group()
@@ -81,6 +82,9 @@ class TrainOptions(BaseTrainOptions):
         arch.add_argument("--num_hidden_layers", type=int, default=3, help="Number of hidden layers")
         arch.add_argument("--num_horz_divs", type=int, default=128, help="Number of horizontal divisions to approximate the container with")
         arch.add_argument("--dropout", type=float, default=0.0, help="Amount of dropout")
+        arch.add_argument("--batch_norm", type=bool, default=False, help="If batch norm will be used")
+        arch.add_argument("--num_init_conv_layers", type=int, default=0, help="The number of conv layers to start the fully connected network with")
+        arch.add_argument("--kernel_size", type=int, default=7, help="The kernel size for the conv layers")
 
         nonlinearity = arch.add_mutually_exclusive_group()
         nonlinearity.add_argument('--use_LeakyReLU', dest='nonlinearity', action='store_const', const='LeakyReLU',help='Use LeakyReLU')

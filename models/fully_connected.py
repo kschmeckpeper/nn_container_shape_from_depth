@@ -14,8 +14,12 @@ class FullyConnected(nn.Module):
                  dropout_prob=0.0,
                  use_batch_norm=False,
                  use_speed_and_angle=False,
+                 num_init_conv_layers=0,
+                 kernel_size=7,
+                 add_one=True,
                  nonlinearity='ReLU'):
         super(FullyConnected, self).__init__()
+        self.add_one = add_one
 
         if not type(num_hidden_channels) is list:
             num_hidden_channels = [num_hidden_channels] * (num_hidden_layers + 1)
@@ -24,7 +28,18 @@ class FullyConnected(nn.Module):
             num_input_channels += 2
 
         layers = OrderedDict()
-        layers['input'] = nn.Linear(num_input_channels, num_hidden_channels[0])
+        if num_init_conv_layers == 0:
+            layers['input'] = nn.Linear(num_input_channels, num_hidden_channels[0])
+            self.conv_network = None
+        else:
+            conv_layers = OrderedDict()
+            for i in range(num_init_conv_layers):
+                conv_layers['conv'+str(i)] = nn.Conv1d(i * 8 + 1, (i+1) * 8 + 1, 7)
+                conv_layers[nonlinearity + '_' + str(i)] = get_nonlinearity(nonlinearity)
+            self.conv_network = nn.Sequential(conv_layers)
+
+            layers['input'] = nn.Linear(((i+1)*8+1) * (num_input_channels -2 -(i+1)* (kernel_size-1)) + 2, num_hidden_channels[0])
+                 
 
 
         for i in range(num_hidden_layers):
@@ -32,15 +47,33 @@ class FullyConnected(nn.Module):
             layers['dropout' + str(i)] = nn.Dropout(p=dropout_prob)
             layers['linear' + str(i)] = nn.Linear(num_hidden_channels[i], num_hidden_channels[i+1])
             if use_batch_norm:
-                layers['norm' + str(i)] = nn.BatchNorm(num_hidden_channels)
+                layers['norm' + str(i)] = nn.BatchNorm1d(num_hidden_channels)
 
         layers['final_' + nonlinearity] = get_nonlinearity(nonlinearity)
         layers['output'] = nn.Linear(num_hidden_channels[num_hidden_layers], num_output_channels)
         self.network = nn.Sequential(layers)
 
     def forward(self, x):
-        return self.network(x) + 1.0
+        if self.conv_network is None:
+            out = self.network(x)
+        else:
+            raise NotImplementedException("Forward without speed and angle is not yet implemented for conv")
+
+        if self.add_one:
+            out = out + 1
 
     def forward(self, x, speed, angle):
-        x = torch.cat((x, speed.view(speed.shape[0], 1), angle.view(angle.shape[0], 1)), dim=1)
-        return self.network(x) + 1.0
+        if self.conv_network is None:
+            x = torch.cat((x, speed.view(speed.shape[0], 1), angle.view(angle.shape[0], 1)), dim=1)
+            return self.network(x)
+        else:
+            x = x.view(x.shape[0], 1, -1)
+            x = self.conv_network(x)
+
+            x = x.view(x.shape[0], -1)
+            x = torch.cat((x, speed.view(speed.shape[0], 1), angle.view(angle.shape[0], 1)), dim=1)
+            out = self.network(x)
+       
+        if self.add_one:
+            out = out + 1
+        return out

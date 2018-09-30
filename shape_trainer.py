@@ -38,8 +38,11 @@ class ShapeTrainer(BaseTrainer):
                                         num_hidden_channels=self.options.num_hidden_channels,
                                         num_hidden_layers=self.options.num_hidden_layers,
                                         dropout_prob=self.options.dropout,
-                                        use_batch_norm=False,
+                                        use_batch_norm=self.options.batch_norm,
                                         use_speed_and_angle=self.use_speed_and_angle,
+                                        num_init_conv_layers=self.options.num_init_conv_layers,
+                                        kernel_size=self.options.kernel_size,
+                                        add_one=self.options.add_one,
                                         nonlinearity=self.options.nonlinearity).to(self.device)
         else:
             raise NotImplementedError('Invalid data source')
