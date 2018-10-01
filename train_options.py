@@ -57,6 +57,8 @@ class TrainOptions(BaseTrainOptions):
         train.add_argument('--add_noise_cross_section', type=float, default=0.0, help='Add noise to cross section')
         train.add_argument('--threshold_fraction', type=float, default=0.75, help='Threshold fraction for calculating wait times')
         train.add_argument('--add_one', type=bool, default=True, help='Adds one to the output of the network')
+        train.add_argument('--seperate_height', type=bool, default=False, help='Seperates the heights into their own tensor before passing it to the network')
+
 
         optim = self.parser.add_argument_group('Optimization')
         optim_type = optim.add_mutually_exclusive_group()

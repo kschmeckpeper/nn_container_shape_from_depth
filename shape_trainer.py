@@ -43,6 +43,7 @@ class ShapeTrainer(BaseTrainer):
                                         num_init_conv_layers=self.options.num_init_conv_layers,
                                         kernel_size=self.options.kernel_size,
                                         add_one=self.options.add_one,
+                                        seperate_height=self.options.seperate_height,
                                         nonlinearity=self.options.nonlinearity).to(self.device)
         else:
             raise NotImplementedError('Invalid data source')
@@ -285,7 +286,9 @@ class ShapeTrainer(BaseTrainer):
         elif self.options.source == 'from_cross_section':
             input_data = input_batch['cross_section_profile'].to(torch.float)
             heights = input_batch['height'].to(torch.float)
-            input_data = torch.cat((input_data, heights.view(heights.shape[0], 1)), dim=1)
+            if not self.options.seperate_height:
+                input_data = torch.cat((input_data, heights.view(heights.shape[0], 1)), dim=1)
+
         if self.options.task == 'cross_section':
             gt_profiles = input_batch['cross_section_profile'].to(torch.float)
         elif self.options.task == 'volume_profile':
@@ -299,8 +302,12 @@ class ShapeTrainer(BaseTrainer):
         if self.use_speed_and_angle:
             speed = input_batch['speed'].to(torch.float)
             angle = input_batch['angle'].to(torch.float)
+
             with torch.set_grad_enabled(is_train):
-                pred_profiles = self.model(input_data, speed, angle)
+               if not self.options.seperate_height:
+                   pred_profiles = self.model(input_data, speed, angle)
+               else:
+                   pred_profiles = self.model(input_data, speed, angle, heights)
         else:
             with torch.set_grad_enabled(is_train):
                 pred_profiles = self.model(input_data)
